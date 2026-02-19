@@ -64,21 +64,23 @@ const db = firebase.firestore();
 const ADMIN_EMAIL = "seuemail@admin.com";
 
 function login(){
-  const email = email.value;
-  const password = password.value;
+  const emailInput = document.getElementById("email").value;
+  const passwordInput = document.getElementById("password").value;
 
-  auth.signInWithEmailAndPassword(email,password)
+  auth.signInWithEmailAndPassword(emailInput, passwordInput)
   .then(userCredential=>{
-      if(email === ADMIN_EMAIL){
+      if(emailInput === ADMIN_EMAIL){
         document.getElementById("admin").style.display="block";
+        document.getElementById("funcionario").style.display="none";
         carregarFuncionarios();
       } else {
         document.getElementById("funcionario").style.display="block";
       }
   })
-  .catch(error=>alert(error.message));
+  .catch(error=>{
+      alert(error.message);
+  });
 }
-
 function logout(){
   auth.signOut();
   location.reload();
