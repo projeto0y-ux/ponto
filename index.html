@@ -1,20 +1,54 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Sistema de Ponto</title>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+<meta charset="UTF-8">
+<title>Sistema de Ponto</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body { font-family: Arial; padding:20px; background:#f4f4f4; }
+.container { background:white; padding:20px; border-radius:8px; max-width:500px; margin:auto; }
+button { padding:10px; margin-top:10px; width:100%; cursor:pointer; }
+select, input { width:100%; padding:8px; margin-top:5px; }
+.admin-panel { display:none; margin-top:20px; }
+</style>
 </head>
 <body>
+
+<div class="container">
 
 <h2>Login</h2>
 <input type="email" id="email" placeholder="Email">
 <input type="password" id="password" placeholder="Senha">
 <button onclick="login()">Entrar</button>
 
+<div id="funcionario" style="display:none;">
 <h2>Bater Ponto</h2>
+
+<select id="tipoPonto">
+<option value="Entrada">Entrada</option>
+<option value="Saída">Saída</option>
+<option value="Intervalo">Intervalo</option>
+</select>
+
 <button onclick="baterPonto()">Registrar Ponto</button>
+<button onclick="logout()">Sair</button>
+</div>
+
+<div id="admin" class="admin-panel">
+<h2>Painel Administrativo</h2>
+<select id="filtroFuncionario"></select>
+<button onclick="carregarRegistros()">Carregar Registros</button>
+<button onclick="gerarPDF()">Gerar PDF</button>
+<div id="listaRegistros"></div>
+</div>
+
+</div>
 
 <script>
 const firebaseConfig = {
@@ -27,27 +61,86 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  auth.signInWithEmailAndPassword(email, password)
-    .then(() => alert("Logado com sucesso"))
-    .catch(err => alert(err.message));
+const ADMIN_EMAIL = "seuemail@admin.com";
+
+function login(){
+  const email = email.value;
+  const password = password.value;
+
+  auth.signInWithEmailAndPassword(email,password)
+  .then(userCredential=>{
+      if(email === ADMIN_EMAIL){
+        document.getElementById("admin").style.display="block";
+        carregarFuncionarios();
+      } else {
+        document.getElementById("funcionario").style.display="block";
+      }
+  })
+  .catch(error=>alert(error.message));
 }
 
-function baterPonto() {
-  navigator.geolocation.getCurrentPosition(function(position) {
-    const user = auth.currentUser;
-    db.collection("pontos").add({
-      email: user.email,
-      data: new Date(),
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude
-    });
-    alert("Ponto registrado com sucesso!");
+function logout(){
+  auth.signOut();
+  location.reload();
+}
+
+function baterPonto(){
+  navigator.geolocation.getCurrentPosition(position=>{
+      const user = auth.currentUser;
+      const tipo = document.getElementById("tipoPonto").value;
+
+      db.collection("pontos").add({
+        nome: user.email,
+        tipo: tipo,
+        data: new Date(),
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      });
+
+      alert("Ponto registrado com sucesso!");
   });
+}
+
+function carregarFuncionarios(){
+  db.collection("pontos").get().then(snapshot=>{
+      let select = document.getElementById("filtroFuncionario");
+      let emails = new Set();
+      snapshot.forEach(doc=>{
+          emails.add(doc.data().nome);
+      });
+      emails.forEach(email=>{
+          let option = document.createElement("option");
+          option.value=email;
+          option.text=email;
+          select.appendChild(option);
+      });
+  });
+}
+
+function carregarRegistros(){
+  let email = document.getElementById("filtroFuncionario").value;
+  db.collection("pontos")
+  .where("nome","==",email)
+  .get()
+  .then(snapshot=>{
+      let html="";
+      snapshot.forEach(doc=>{
+          let d = doc.data();
+          html += `<p>${d.tipo} - ${new Date(d.data.seconds*1000).toLocaleString()}</p>`;
+      });
+      document.getElementById("listaRegistros").innerHTML=html;
+  });
+}
+
+async function gerarPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let content = document.getElementById("listaRegistros").innerText;
+  doc.text(content,10,10);
+  doc.save("relatorio_ponto.pdf");
 }
 </script>
 
 </body>
 </html>
+
