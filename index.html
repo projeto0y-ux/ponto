@@ -1,13 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>My GitHub Pages Site</title>
+  <title>Sistema de Ponto</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
 </head>
 <body>
-    <h1>Welcome to My GitHub Pages Site</h1>
-    <p>This is a basic HTML file for a GitHub Pages site.</p>
+
+<h2>Login</h2>
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="password" placeholder="Senha">
+<button onclick="login()">Entrar</button>
+
+<h2>Bater Ponto</h2>
+<button onclick="baterPonto()">Registrar Ponto</button>
+
+<script>
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  authDomain: "SEU_AUTH_DOMAIN",
+  projectId: "SEU_PROJECT_ID",
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => alert("Logado com sucesso"))
+    .catch(err => alert(err.message));
+}
+
+function baterPonto() {
+  navigator.geolocation.getCurrentPosition(function(position) {
+    const user = auth.currentUser;
+    db.collection("pontos").add({
+      email: user.email,
+      data: new Date(),
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude
+    });
+    alert("Ponto registrado com sucesso!");
+  });
+}
+</script>
+
 </body>
 </html>
