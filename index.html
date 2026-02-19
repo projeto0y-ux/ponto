@@ -87,20 +87,45 @@ function logout(){
 }
 
 function baterPonto(){
-  navigator.geolocation.getCurrentPosition(position=>{
-      const user = auth.currentUser;
+
+  const user = auth.currentUser;
+
+  if(!user){
+    alert("Usuário não está logado.");
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    alert("Geolocalização não é suportada neste navegador.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function(position){
+
       const tipo = document.getElementById("tipoPonto").value;
 
       db.collection("pontos").add({
         nome: user.email,
         tipo: tipo,
-        data: new Date(),
+        data: firebase.firestore.FieldValue.serverTimestamp(),
         latitude: position.coords.latitude,
         longitude: position.coords.longitude
+      })
+      .then(()=>{
+        alert("Ponto registrado com sucesso!");
+      })
+      .catch(error=>{
+        console.error("Erro ao salvar:", error);
+        alert("Erro ao salvar no banco: " + error.message);
       });
 
-      alert("Ponto registrado com sucesso!");
-  });
+    },
+    function(error){
+      console.error("Erro localização:", error);
+      alert("Permissão de localização negada ou erro ao capturar GPS.");
+    }
+  );
 }
 
 function carregarFuncionarios(){
